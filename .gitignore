@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+node_modules/
+dist/
+*.log
+.DS_Store
+Thumbs.db
+
+.env
+.vscode/
