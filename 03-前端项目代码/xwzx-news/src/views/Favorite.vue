@@ -35,6 +35,7 @@
 
     <van-tabbar v-model="activeTab" route>
       <van-tabbar-item icon="home-o" :label="$t('home')" to="/" />
+      <van-tabbar-item icon="chat-o" :label="$t('chat')" to="/chat" />
       <van-tabbar-item icon="star" :label="$t('favorite')" to="/favorite" />
       <van-tabbar-item icon="clock-o" :label="$t('history')" to="/history" />
       <van-tabbar-item icon="user-o" :label="$t('profile')" to="/profile" />
@@ -58,7 +59,7 @@ const loading = ref(false)
 const finished = ref(false)
 const refreshing = ref(false)
 
-const activeTab = ref(1)
+const activeTab = ref(2)
 
 onMounted(() => {
   if (userStore.token) {

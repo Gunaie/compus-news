@@ -24,6 +24,7 @@ import {
   Toast,
   Icon,
   Popup,
+  Loading,
   showLoadingToast,
   closeToast
 } from 'vant'
@@ -63,6 +64,7 @@ app.use(VanImage)
 app.use(Toast)
 app.use(Icon)
 app.use(Popup)
+app.use(Loading)
 
 // 使用路由和状态管理
 app.use(router)

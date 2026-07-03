@@ -97,4 +97,10 @@ export const historyApi = {
   }
 }
 
+export const chatApi = {
+  completion(data) {
+    return api.post('/api/chat/completion', data)
+  }
+}
+
 export default api

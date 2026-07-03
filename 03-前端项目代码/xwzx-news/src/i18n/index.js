@@ -6,6 +6,7 @@ const messages = {
     favorite: '收藏',
     history: '历史',
     profile: '我的',
+    chat: 'AI问答',
     news: '新闻',
     login: '登录',
     register: '注册',
@@ -55,13 +56,18 @@ const messages = {
     relatedNews: '相关新闻',
     description: '简介',
     content: '内容',
-    author: '作者'
+    author: '作者',
+    chatPlaceholder: '请输入您的问题...',
+    send: '发送',
+    aiThinking: 'AI正在思考中...',
+    chatError: '发送失败，请重试'
   },
   en: {
     home: 'Home',
     favorite: 'Favorite',
     history: 'History',
     profile: 'Profile',
+    chat: 'AI Chat',
     news: 'News',
     login: 'Login',
     register: 'Register',
@@ -111,7 +117,11 @@ const messages = {
     relatedNews: 'Related News',
     description: 'Description',
     content: 'Content',
-    author: 'Author'
+    author: 'Author',
+    chatPlaceholder: 'Please enter your question...',
+    send: 'Send',
+    aiThinking: 'AI is thinking...',
+    chatError: 'Send failed, please retry'
   }
 }
 

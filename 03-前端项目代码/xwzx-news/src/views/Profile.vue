@@ -28,6 +28,7 @@
 
     <van-tabbar v-model="activeTab" route>
       <van-tabbar-item icon="home-o" :label="$t('home')" to="/" />
+      <van-tabbar-item icon="chat-o" :label="$t('chat')" to="/chat" />
       <van-tabbar-item icon="star-o" :label="$t('favorite')" to="/favorite" />
       <van-tabbar-item icon="clock-o" :label="$t('history')" to="/history" />
       <van-tabbar-item icon="user" :label="$t('profile')" to="/profile" />
@@ -44,7 +45,7 @@ import { showToast } from 'vant'
 const router = useRouter()
 const userStore = useUserStore()
 
-const activeTab = ref(3)
+const activeTab = ref(4)
 
 onMounted(() => {
   if (userStore.token && !userStore.userInfo) {
