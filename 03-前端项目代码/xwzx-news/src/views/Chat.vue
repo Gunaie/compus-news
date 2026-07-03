@@ -93,10 +93,18 @@ const sendMessage = async () => {
   await scrollToBottom()
 
   try {
-    const history = messages.value.slice(0, -1).map(msg => ({
-      user: msg.role === 'user' ? msg.content : '',
-      assistant: msg.role === 'assistant' ? msg.content : ''
-    })).filter(item => item.user || item.assistant)
+    const history = []
+    const prevMessages = messages.value.slice(0, -1)
+    for (let i = 0; i < prevMessages.length; i += 2) {
+      const userMsg = prevMessages[i]
+      const assistantMsg = prevMessages[i + 1]
+      if (userMsg && userMsg.role === 'user') {
+        history.push({
+          user: userMsg.content,
+          assistant: assistantMsg && assistantMsg.role === 'assistant' ? assistantMsg.content : ''
+        })
+      }
+    }
 
     const response = await chatApi.completion({
       message: message,
