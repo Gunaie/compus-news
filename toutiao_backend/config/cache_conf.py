@@ -3,9 +3,8 @@ from typing import Any
 
 import redis.asyncio as redis
 
-REDIS_HOST = "localhost"
-REDIS_PORT = 6379
-REDIS_DB = 0
+from config.settings import settings
+
 
 redis_client = None
 
@@ -15,13 +14,14 @@ def get_redis_client():
     if redis_client is None:
         try:
             redis_client = redis.Redis(
-                host=REDIS_HOST,
-                port=REDIS_PORT,
-                db=REDIS_DB,
+                host=settings.REDIS_HOST,
+                port=settings.REDIS_PORT,
+                db=settings.REDIS_DB,
                 decode_responses=True,
                 socket_timeout=0.5,
                 socket_connect_timeout=0.5,
-                health_check_interval=0
+                health_check_interval=30,
+                max_connections=100
             )
         except Exception:
             redis_client = None

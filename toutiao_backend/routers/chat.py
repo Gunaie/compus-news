@@ -2,21 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 import httpx
-import json
-import os
-from dotenv import load_dotenv
 
 from config.db_conf import get_db
+from config.settings import settings
 from utils.auth import get_current_user
 from utils.response import success_response
+from utils.rate_limit import limiter
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
-
-load_dotenv()
-
-DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
-DASHSCOPE_API_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
-MODEL_NAME = os.getenv("DASHSCOPE_MODEL", "kimi-k2.6")
 
 
 class ChatRequest(BaseModel):
@@ -39,6 +32,7 @@ def get_mock_response(message: str) -> str:
 
 
 @router.post("/completion")
+@limiter.limit("10/minute")
 async def chat_completion(
     request: ChatRequest,
     db: AsyncSession = Depends(get_db),
@@ -52,17 +46,17 @@ async def chat_completion(
 
     messages.append({"role": "user", "content": request.message})
 
-    if not DASHSCOPE_API_KEY or len(DASHSCOPE_API_KEY) < 10:
+    if not settings.DASHSCOPE_API_KEY or len(settings.DASHSCOPE_API_KEY) < 10:
         mock_answer = get_mock_response(request.message)
         return success_response(message="success", data={"answer": mock_answer})
 
     headers = {
-        "Authorization": f"Bearer {DASHSCOPE_API_KEY}",
+        "Authorization": f"Bearer {settings.DASHSCOPE_API_KEY}",
         "Content-Type": "application/json"
     }
 
     body = {
-        "model": MODEL_NAME,
+        "model": settings.DASHSCOPE_MODEL,
         "messages": messages,
         "temperature": 0.7,
         "max_tokens": 2048
@@ -70,7 +64,7 @@ async def chat_completion(
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(DASHSCOPE_API_URL, headers=headers, json=body)
+            response = await client.post(settings.DASHSCOPE_API_URL, headers=headers, json=body)
             response.raise_for_status()
             result = response.json()
 
@@ -78,13 +72,12 @@ async def chat_completion(
                 answer = result["choices"][0]["message"]["content"]
                 return success_response(message="success", data={"answer": answer})
             else:
-                error_msg = result.get("error", {}).get("message", "AI服务返回异常")
                 mock_answer = get_mock_response(request.message)
                 return success_response(message="success", data={"answer": mock_answer})
 
-    except httpx.HTTPError as e:
+    except httpx.HTTPError:
         mock_answer = get_mock_response(request.message)
         return success_response(message="success", data={"answer": mock_answer})
-    except Exception as e:
+    except Exception:
         mock_answer = get_mock_response(request.message)
         return success_response(message="success", data={"answer": mock_answer})

@@ -1,6 +1,7 @@
 import axios from 'axios'
+import { Toast } from 'vant'
 
-const BASE_URL = 'http://localhost:8888'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8888'
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -25,11 +26,47 @@ api.interceptors.response.use(
     return response.data
   },
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('userInfo')
-      window.location.href = '/login'
+    const { response, message } = error
+    
+    if (response) {
+      const { status, data } = response
+      
+      const errorMsg = data?.message || '请求失败'
+      
+      switch (status) {
+        case 400:
+          Toast.error(errorMsg)
+          break
+        case 401:
+          localStorage.removeItem('token')
+          localStorage.removeItem('userInfo')
+          Toast.error('登录已过期，请重新登录')
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 1500)
+          break
+        case 403:
+          Toast.error('无权限访问')
+          break
+        case 429:
+          Toast.error('请求过于频繁，请稍后再试')
+          break
+        case 500:
+          Toast.error('服务器内部错误，请稍后再试')
+          break
+        default:
+          Toast.error(errorMsg)
+      }
+    } else if (message) {
+      if (message.includes('Network Error')) {
+        Toast.error('网络连接异常，请检查网络')
+      } else if (message.includes('timeout')) {
+        Toast.error('请求超时，请重试')
+      } else {
+        Toast.error('请求失败')
+      }
     }
+    
     return Promise.reject(error)
   }
 )

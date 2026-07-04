@@ -3,7 +3,6 @@ import App from './App.vue'
 import router from './router'
 import pinia from './store'
 
-// 导入Vant组件库
 import { 
   Button, 
   NavBar, 
@@ -26,7 +25,8 @@ import {
   Popup,
   Loading,
   showLoadingToast,
-  closeToast
+  closeToast,
+  Lazyload
 } from 'vant'
 
 // 导入Vant样式
@@ -65,6 +65,10 @@ app.use(Toast)
 app.use(Icon)
 app.use(Popup)
 app.use(Loading)
+app.use(Lazyload, {
+  lazyComponent: true,
+  loading: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="80" viewBox="0 0 100 80"%3E%3Crect fill="%23f5f5f5" width="100" height="80"/%3E%3C/svg%3E'
+})
 
 // 使用路由和状态管理
 app.use(router)

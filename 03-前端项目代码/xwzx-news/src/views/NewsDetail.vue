@@ -13,7 +13,7 @@
         <span class="news-time">{{ news.publishTime }}</span>
         <span class="news-views">{{ news.views }}阅读</span>
       </div>
-      <van-image v-if="news.image" :src="news.image" class="news-image" fit="cover" @error="handleImageError" />
+      <van-image v-if="news.image" v-lazy="news.image" class="news-image" fit="cover" @error="handleImageError" />
       <div class="news-content" v-html="news.content"></div>
       
       <div class="news-actions">

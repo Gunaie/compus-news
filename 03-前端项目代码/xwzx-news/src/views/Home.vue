@@ -29,7 +29,7 @@
               </div>
               <van-image
                 v-if="news.image"
-                :src="news.image"
+                v-lazy="news.image"
                 class="news-image"
                 fit="cover"
                 @error="handleImageError($event, news)"

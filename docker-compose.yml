@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: campus-news-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345678
+      MYSQL_DATABASE: news_app
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docs/database.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - campus-news-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  redis:
+    image: redis:latest
+    container_name: campus-news-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - campus-news-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 10s
+      retries: 5
+
+  backend:
+    build:
+      context: ./toutiao_backend
+      dockerfile: Dockerfile
+    container_name: campus-news-backend
+    environment:
+      - DATABASE_URL=mysql+aiomysql://root:12345678@mysql:3306/news_app?charset=utf8mb4
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET_KEY=campus-news-jwt-secret-key-change-in-production
+      - CORS_ORIGINS=http://localhost:8080
+    ports:
+      - "8888:8888"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - campus-news-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/api/health"]
+      timeout: 10s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./03-前端项目代码/xwzx-news
+      dockerfile: Dockerfile
+    container_name: campus-news-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - campus-news-network
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  campus-news-network:
+    driver: bridge
