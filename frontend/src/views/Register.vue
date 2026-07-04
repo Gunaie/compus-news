@@ -16,7 +16,7 @@
           :placeholder="`请输入${$t('password')}`"
           type="password"
           required
-          :error-message="'密码需至少8位，包含大小写字母和数字'"
+          :error-message="'密码长度需6-128个字符'"
         />
         <van-field
           v-model="form.confirmPassword"

@@ -29,6 +29,15 @@ def setup_logging():
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
 
+    class DefaultRequestIdFilter(logging.Filter):
+        def filter(self, record):
+            if not hasattr(record, 'request_id'):
+                record.request_id = "N/A"
+            return True
+
+    console_handler.addFilter(DefaultRequestIdFilter())
+    file_handler.addFilter(DefaultRequestIdFilter())
+
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
 

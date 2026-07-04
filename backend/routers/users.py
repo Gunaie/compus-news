@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/user", tags=["users"])
 
 
 @router.post("/register")
-@limiter.limit("10/minute")
+@limiter.limit("30/minute")
 async def register(request: Request, user_data: UserRequest, db: AsyncSession = Depends(get_db)):
     existing_user = await users.get_user_by_username(db, user_data.username)
     if existing_user:
@@ -27,7 +27,7 @@ async def register(request: Request, user_data: UserRequest, db: AsyncSession = 
 
 
 @router.post("/login")
-@limiter.limit("5/minute")
+@limiter.limit("20/minute")
 async def login(request: Request, user_data: UserRequest, db: AsyncSession = Depends(get_db)):
     user = await users.authenticate_user(db, user_data.username, user_data.password)
     if not user:

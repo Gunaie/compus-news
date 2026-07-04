@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config.db_conf import AsyncSessionLocal
-from config.cache_conf import get_redis_client
+from config.cache_conf import create_redis_client
 from utils.response import success_response
 
 router = APIRouter(prefix="/api/health", tags=["health"])
@@ -26,9 +26,7 @@ async def health_check_db():
 @router.get("/redis")
 async def health_check_redis():
     try:
-        client = get_redis_client()
-        if not client:
-            return {"code": 500, "message": "Redis客户端未初始化", "data": {"status": "unhealthy", "component": "redis"}}
+        client = await create_redis_client()
         await client.ping()
         return success_response(message="Redis连接正常", data={"status": "healthy", "component": "redis"})
     except Exception as e:

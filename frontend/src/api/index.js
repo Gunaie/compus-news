@@ -23,9 +23,17 @@ function replacePicsumUrl(value) {
   return value
 }
 
+function getToken() {
+  try {
+    return sessionStorage.getItem('campus_news_token') || localStorage.getItem('token')
+  } catch {
+    return localStorage.getItem('token')
+  }
+}
+
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
+    const token = getToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -54,6 +62,10 @@ api.interceptors.response.use(
           showToast({ message: errorMsg, icon: 'error' })
           break
         case 401:
+          try {
+            sessionStorage.removeItem('campus_news_token')
+            sessionStorage.removeItem('campus_news_userinfo')
+          } catch {}
           localStorage.removeItem('token')
           localStorage.removeItem('userInfo')
           showToast({ message: '登录已过期，请重新登录', icon: 'error' })

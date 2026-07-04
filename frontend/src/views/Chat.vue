@@ -59,11 +59,13 @@
 import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { useUserStore } from '../store/user'
 import { chatApi } from '../api'
 
 const { t } = useI18n()
 
 const router = useRouter()
+const userStore = useUserStore()
 const messageList = ref(null)
 const messages = ref([])
 const inputMessage = ref('')
@@ -81,8 +83,7 @@ const sendMessage = async () => {
   const message = inputMessage.value.trim()
   if (!message || loading.value) return
 
-  const token = localStorage.getItem('token')
-  if (!token) {
+  if (!userStore.token) {
     router.push('/login')
     return
   }
