@@ -226,7 +226,7 @@ function handleImageError(event) {
   width: 32px;
   height: 32px;
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #1989fa;
+  border-top: 3px solid #4CAF50;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
