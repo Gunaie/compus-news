@@ -8,6 +8,21 @@ const api = axios.create({
   timeout: 30000
 })
 
+function replacePicsumUrl(value) {
+  if (typeof value === 'string' && value.startsWith('https://picsum.photos/')) {
+    return `/api/image/proxy?url=${encodeURIComponent(value)}`
+  }
+  if (typeof value === 'object' && value !== null) {
+    if (Array.isArray(value)) {
+      return value.map(replacePicsumUrl)
+    }
+    for (const key in value) {
+      value[key] = replacePicsumUrl(value[key])
+    }
+  }
+  return value
+}
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
@@ -23,6 +38,7 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
+    replacePicsumUrl(response.data)
     return response.data
   },
   (error) => {
