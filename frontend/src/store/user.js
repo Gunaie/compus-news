@@ -2,18 +2,45 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { userApi } from '../api'
 
+const STORAGE_KEY_TOKEN = 'campus_news_token'
+const STORAGE_KEY_USERINFO = 'campus_news_userinfo'
+
+function getStorage(key) {
+  try {
+    return sessionStorage.getItem(key)
+  } catch {
+    return localStorage.getItem(key)
+  }
+}
+
+function setStorage(key, value) {
+  try {
+    sessionStorage.setItem(key, value)
+  } catch {
+    localStorage.setItem(key, value)
+  }
+}
+
+function removeStorage(key) {
+  try {
+    sessionStorage.removeItem(key)
+  } catch {
+    localStorage.removeItem(key)
+  }
+}
+
 export const useUserStore = defineStore('user', () => {
   const userInfo = ref(null)
-  const token = ref(localStorage.getItem('token') || '')
+  const token = ref(getStorage(STORAGE_KEY_TOKEN) || '')
 
   function setToken(newToken) {
     token.value = newToken
-    localStorage.setItem('token', newToken)
+    setStorage(STORAGE_KEY_TOKEN, newToken)
   }
 
   function setUserInfo(info) {
     userInfo.value = info
-    localStorage.setItem('userInfo', JSON.stringify(info))
+    setStorage(STORAGE_KEY_USERINFO, JSON.stringify(info))
   }
 
   async function login(data) {
@@ -47,8 +74,8 @@ export const useUserStore = defineStore('user', () => {
   async function logout() {
     token.value = ''
     userInfo.value = null
-    localStorage.removeItem('token')
-    localStorage.removeItem('userInfo')
+    removeStorage(STORAGE_KEY_TOKEN)
+    removeStorage(STORAGE_KEY_USERINFO)
   }
 
   async function getUserInfo() {

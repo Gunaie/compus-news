@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 import httpx
+import logging
 
 from config.db_conf import get_db
 from config.settings import settings
@@ -10,6 +11,8 @@ from utils.response import success_response
 from utils.rate_limit import limiter
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
+
+logger = logging.getLogger(__name__)
 
 
 class ChatRequest(BaseModel):
@@ -73,12 +76,22 @@ async def chat_completion(
                 answer = result["choices"][0]["message"]["content"]
                 return success_response(message="success", data={"answer": answer})
             else:
+                logger.warning("AI API返回格式异常")
                 mock_answer = get_mock_response(chat_request.message)
                 return success_response(message="success", data={"answer": mock_answer})
 
-    except httpx.HTTPError:
+    except httpx.HTTPError as e:
+        logger.error(f"AI API请求失败: {str(e)}")
         mock_answer = get_mock_response(chat_request.message)
         return success_response(message="success", data={"answer": mock_answer})
-    except Exception:
+    except httpx.TimeoutException as e:
+        logger.error(f"AI API请求超时: {str(e)}")
         mock_answer = get_mock_response(chat_request.message)
         return success_response(message="success", data={"answer": mock_answer})
+    except KeyError as e:
+        logger.error(f"AI API响应解析失败: {str(e)}")
+        mock_answer = get_mock_response(chat_request.message)
+        return success_response(message="success", data={"answer": mock_answer})
+    except Exception as e:
+        logger.error(f"AI聊天异常: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="AI服务异常，请稍后再试")

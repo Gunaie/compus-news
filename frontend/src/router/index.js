@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { userApi } from '../api'
+import { showToast } from 'vant'
 
 const routes = [
   {
@@ -54,16 +56,50 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
-  const isAuthenticated = !!localStorage.getItem('token')
+function getToken() {
+  try {
+    return sessionStorage.getItem('campus_news_token') || localStorage.getItem('token')
+  } catch {
+    return localStorage.getItem('token')
+  }
+}
+
+function clearAuthData() {
+  try {
+    sessionStorage.removeItem('campus_news_token')
+    sessionStorage.removeItem('campus_news_userinfo')
+  } catch {}
+  localStorage.removeItem('token')
+  localStorage.removeItem('userInfo')
+}
+
+router.beforeEach(async (to, from, next) => {
+  const token = getToken()
+  const isAuthenticated = !!token
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
-  } else if (to.meta.guestOnly && isAuthenticated) {
-    next({ name: 'Home' })
-  } else {
-    next()
+    return
   }
+
+  if (to.meta.guestOnly && isAuthenticated) {
+    next({ name: 'Home' })
+    return
+  }
+
+  if (to.meta.requiresAuth && isAuthenticated) {
+    try {
+      await userApi.getInfo()
+      next()
+    } catch (error) {
+      clearAuthData()
+      showToast({ message: '登录已过期，请重新登录', icon: 'error' })
+      next({ name: 'Login', query: { redirect: to.fullPath } })
+      return
+    }
+  }
+
+  next()
 })
 
 export default router

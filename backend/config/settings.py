@@ -1,12 +1,13 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import List
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-    DEBUG: bool = True
+    DEBUG: bool = False
 
-    DATABASE_URL: str = "mysql+aiomysql://root:12345678@localhost:3306/news_app?charset=utf8mb4"
+    DATABASE_URL: str = ""
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 20
 
@@ -14,12 +15,12 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
 
-    JWT_SECRET_KEY: str = "campus-news-jwt-secret-key-change-in-production"
+    JWT_SECRET_KEY: str = ""
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:8080"
+    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:8080"]
 
     DASHSCOPE_API_KEY: str = ""
     DASHSCOPE_API_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"

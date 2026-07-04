@@ -4,9 +4,25 @@ import re
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
+def validate_password(password: str) -> str:
+    if len(password) < 8:
+        raise ValueError('密码长度至少8位')
+    if not re.search(r'[a-z]', password):
+        raise ValueError('密码必须包含小写字母')
+    if not re.search(r'[A-Z]', password):
+        raise ValueError('密码必须包含大写字母')
+    if not re.search(r'[0-9]', password):
+        raise ValueError('密码必须包含数字')
+    return password
+
+
 class UserRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, description="用户名，3-50个字符")
-    password: str = Field(..., min_length=6, max_length=128, description="密码，6-128个字符")
+    password: str = Field(..., min_length=8, max_length=128, description="密码，至少8位，包含大小写字母和数字")
+
+    @field_validator('password')
+    def validate_user_password(cls, v):
+        return validate_password(v)
 
 
 class UserInfoBase(BaseModel):
@@ -49,10 +65,4 @@ class UserChangePasswordRequest(BaseModel):
 
     @field_validator('new_password')
     def validate_new_password(cls, v):
-        if not re.search(r'[a-z]', v):
-            raise ValueError('新密码必须包含小写字母')
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('新密码必须包含大写字母')
-        if not re.search(r'[0-9]', v):
-            raise ValueError('新密码必须包含数字')
-        return v
+        return validate_password(v)
