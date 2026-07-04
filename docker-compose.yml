@@ -37,7 +37,7 @@ services:
 
   backend:
     build:
-      context: ./toutiao_backend
+      context: ./backend
       dockerfile: Dockerfile
     container_name: campus-news-backend
     environment:
@@ -62,7 +62,7 @@ services:
 
   frontend:
     build:
-      context: ./03-前端项目代码/xwzx-news
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: campus-news-frontend
     ports:

@@ -30,22 +30,7 @@
 
 ```
 .
-├── 03-前端项目代码/
-│   └── xwzx-news/              # 前端项目
-│       ├── src/
-│       │   ├── api/            # API 请求封装
-│       │   ├── i18n/           # 国际化配置
-│       │   ├── router/         # 路由配置
-│       │   ├── store/          # Pinia 状态管理
-│       │   ├── views/          # 页面组件
-│       │   ├── App.vue         # 根组件
-│       │   ├── main.js         # 入口文件
-│       │   └── style.css       # 全局样式
-│       ├── index.html          # HTML 模板
-│       ├── vite.config.js      # Vite 配置
-│       └── package.json        # 前端依赖
-│
-├── toutiao_backend/            # 后端项目
+├── backend/                    # 后端项目
 │   ├── crud/                   # 数据访问层
 │   ├── models/                 # 数据库模型
 │   ├── routers/                # API 路由
@@ -57,6 +42,20 @@
 │   ├── main.py                 # 入口文件
 │   ├── pyproject.toml          # Python 项目配置
 │   └── requirements.txt        # 依赖列表
+│
+├── frontend/                   # 前端项目
+│   ├── src/
+│   │   ├── api/                # API 请求封装
+│   │   ├── i18n/               # 国际化配置
+│   │   ├── router/             # 路由配置
+│   │   ├── store/              # Pinia 状态管理
+│   │   ├── views/              # 页面组件
+│   │   ├── App.vue             # 根组件
+│   │   ├── main.js             # 入口文件
+│   │   └── style.css           # 全局样式
+│   ├── index.html              # HTML 模板
+│   ├── vite.config.js          # Vite 配置
+│   └── package.json            # 前端依赖
 │
 ├── docs/                       # 项目文档
 │   ├── API接口规范文档.md       # API 接口详细文档
@@ -103,13 +102,13 @@
 
 **后端依赖 (使用 uv 包管理器)**:
 ```bash
-cd toutiao_backend
+cd backend
 uv sync
 ```
 
 **前端依赖**:
 ```bash
-cd 03-前端项目代码/xwzx-news
+cd frontend
 npm install --registry=https://registry.npmmirror.com
 ```
 
@@ -117,7 +116,7 @@ npm install --registry=https://registry.npmmirror.com
 
 **后端配置**:
 ```bash
-cd toutiao_backend
+cd backend
 cp .env.example .env
 ```
 
@@ -168,13 +167,13 @@ server: {
 
 **启动后端**:
 ```bash
-cd toutiao_backend
+cd backend
 uvicorn main:app --host 0.0.0.0 --port 8888 --reload
 ```
 
 **启动前端**:
 ```bash
-cd 03-前端项目代码/xwzx-news
+cd frontend
 npm run dev
 ```
 
@@ -248,7 +247,7 @@ docker-compose down
 
 执行数据库初始化脚本：
 ```bash
-cd toutiao_backend
+cd backend
 python run_sql.py
 ```
 
@@ -262,7 +261,7 @@ mysql -u username -p database < docs/campus_data.sql
 
 运行后端测试：
 ```bash
-cd toutiao_backend
+cd backend
 uv run pytest
 ```
 
