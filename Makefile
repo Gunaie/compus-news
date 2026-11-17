@@ -1,24 +1,42 @@
-.PHONY: all run build test clean stop logs
+.PHONY: all run deploy build test test-backend test-e2e test-perf smoke clean stop logs ps backend-dev frontend-dev install-backend install-frontend
 
 all: build run
 
 run:
-	docker-compose up -d
+	docker compose up -d
+
+deploy:
+	docker compose up -d --build
+	node scripts/smoke.mjs
 
 build:
-	docker-compose build
+	docker compose build
 
-test:
+test: test-backend test-e2e
+
+test-backend:
 	cd backend && uv run pytest tests/ -v
 
+test-e2e:
+	cd frontend && npm run test:e2e
+
+test-perf:
+	cd frontend && npm run test:perf
+
+smoke:
+	node scripts/smoke.mjs
+
 stop:
-	docker-compose down
+	docker compose down
 
 logs:
-	docker-compose logs -f
+	docker compose logs -f
+
+ps:
+	docker compose ps
 
 clean:
-	docker-compose down -v
+	docker compose down -v
 	rm -rf backend/.venv
 	rm -rf frontend/node_modules
 
@@ -28,14 +46,8 @@ backend-dev:
 frontend-dev:
 	cd frontend && npm run dev
 
-lint-backend:
-	cd backend && uv run python -m flake8 .
-
-lint-frontend:
-	cd frontend && npm run lint
-
 install-backend:
 	cd backend && uv sync
 
 install-frontend:
-	cd frontend && npm install
+	cd frontend && npm ci

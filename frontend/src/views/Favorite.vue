@@ -28,7 +28,16 @@
               <span class="item-time">{{ formatTime(item.favoriteTime) }}</span>
             </div>
           </div>
-          <van-image v-if="item.image" :src="item.image" class="item-image" fit="cover" />
+          <img
+            v-if="item.image"
+            v-bind="getThumbnailProps(item.image)"
+            class="item-image"
+            :alt="item.title"
+            width="100"
+            height="80"
+            loading="lazy"
+            decoding="async"
+          />
         </div>
       </van-list>
     </van-pull-refresh>
@@ -48,6 +57,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { favoriteApi } from '../api'
 import { useUserStore } from '../store/user'
+import { getThumbnailProps } from '../utils/image'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -180,5 +190,7 @@ function formatTime(timeStr) {
   height: 80px;
   flex-shrink: 0;
   border-radius: 6px;
+  object-fit: cover;
+  background: #f5f5f5;
 }
 </style>

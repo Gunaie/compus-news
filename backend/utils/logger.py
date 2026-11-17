@@ -1,8 +1,32 @@
+import json
 import logging
 import os
 from logging.handlers import TimedRotatingFileHandler
 
 from config.settings import settings
+
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record):
+        message = record.getMessage()
+        payload = {
+            "timestamp": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
+            "level": record.levelname.lower(),
+            "logger": record.name,
+            "request_id": getattr(record, "request_id", "N/A"),
+            "message": message,
+        }
+        try:
+            details = json.loads(message)
+            if isinstance(details, dict):
+                payload.update(details)
+                if "message" not in details:
+                    payload.pop("message", None)
+        except (TypeError, ValueError):
+            pass
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+        return json.dumps(payload, ensure_ascii=False, default=str)
 
 
 def setup_logging():
@@ -12,9 +36,7 @@ def setup_logging():
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG if settings.DEBUG else logging.INFO)
 
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(request_id)s - %(message)s"
-    )
+    formatter = JsonFormatter()
 
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.DEBUG if settings.DEBUG else logging.INFO)

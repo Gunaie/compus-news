@@ -1,14 +1,21 @@
-backend/.venv/
-backend/__pycache__/
-backend/*.py[oc]
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
 backend/build/
 backend/dist/
 backend/wheels/
 backend/*.egg-info
+backend/logs/
 
 frontend/node_modules/
 frontend/dist/
 frontend/*.log
+frontend/playwright-report/
+frontend/test-results/
+frontend/lighthouse-report/
+frontend/.lighthouseci/
+frontend/.lhci/
 
 *.log
 .DS_Store
@@ -16,6 +23,8 @@ Thumbs.db
 
 .env
 .vscode/
+.trae/
+.trae-html-share-packages/
 
 toutiao_backend/
 03-前端项目代码/

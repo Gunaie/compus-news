@@ -1,39 +1,44 @@
-version: '3.8'
+name: campus-news
 
 services:
   mysql:
     image: mysql:8.0
     container_name: campus-news-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: 12345678
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in .env}
       MYSQL_DATABASE: news_app
       MYSQL_CHARSET: utf8mb4
       MYSQL_COLLATION: utf8mb4_unicode_ci
     ports:
-      - "3306:3306"
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./docs/database.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - campus-news-network
+      - ./docs/database.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./docs/campus_data.sql:/docker-entrypoint-initdb.d/02-campus-data.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 10
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging: &default-logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
 
   redis:
-    image: redis:latest
+    image: redis:7-alpine
     container_name: campus-news-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
-    networks:
-      - campus-news-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      timeout: 10s
-      retries: 5
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    logging: *default-logging
 
   backend:
     build:
@@ -41,41 +46,74 @@ services:
       dockerfile: Dockerfile
     container_name: campus-news-backend
     environment:
-      - DATABASE_URL=mysql+aiomysql://root:12345678@mysql:3306/news_app?charset=utf8mb4
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - JWT_SECRET_KEY=campus-news-jwt-secret-key-change-in-production
-      - CORS_ORIGINS=http://localhost:5173,http://localhost:5175,http://localhost:8080
+      DEBUG: "False"
+      DATABASE_URL: mysql+aiomysql://root:${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in .env}@mysql:3306/news_app?charset=utf8mb4
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RATE_LIMIT_STORAGE_URL: redis://redis:6379/1
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set in .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:5175","http://localhost:8080"]}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
     ports:
-      - "8888:8888"
+      - "127.0.0.1:${BACKEND_PORT:-8888}:8888"
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks:
-      - campus-news-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/api/health"]
-      timeout: 10s
-      retries: 5
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8888/api/health/ready', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    logging: *default-logging
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_IMAGE_CDN_BASE_URL: ${VITE_IMAGE_CDN_BASE_URL:-}
+        VITE_MONITOR_SAMPLE_RATE: ${VITE_MONITOR_SAMPLE_RATE:-0.1}
     container_name: campus-news-frontend
-    ports:
-      - "8080:80"
+    environment:
+      NODE_ENV: production
+      PORT: 5175
+      API_INTERNAL_BASE_URL: http://backend:8888
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
+    expose:
+      - "5175"
     depends_on:
-      - backend
-    networks:
-      - campus-news-network
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5175/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging: *default-logging
+
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: campus-news-gateway
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - ./frontend/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
 
 volumes:
   mysql_data:
   redis_data:
-
-networks:
-  campus-news-network:
-    driver: bridge

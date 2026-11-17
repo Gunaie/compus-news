@@ -6,26 +6,29 @@ const STORAGE_KEY_TOKEN = 'campus_news_token'
 const STORAGE_KEY_USERINFO = 'campus_news_userinfo'
 
 function getStorage(key) {
+  if (typeof window === 'undefined') return null
   try {
-    return sessionStorage.getItem(key)
+    return window.sessionStorage.getItem(key)
   } catch {
-    return localStorage.getItem(key)
+    return window.localStorage.getItem(key)
   }
 }
 
 function setStorage(key, value) {
+  if (typeof window === 'undefined') return
   try {
-    sessionStorage.setItem(key, value)
+    window.sessionStorage.setItem(key, value)
   } catch {
-    localStorage.setItem(key, value)
+    window.localStorage.setItem(key, value)
   }
 }
 
 function removeStorage(key) {
+  if (typeof window === 'undefined') return
   try {
-    sessionStorage.removeItem(key)
+    window.sessionStorage.removeItem(key)
   } catch {
-    localStorage.removeItem(key)
+    window.localStorage.removeItem(key)
   }
 }
 

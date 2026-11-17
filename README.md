@@ -5,9 +5,11 @@
 ## 技术栈
 
 ### 前端
-- **框架**: Vue 3 (Composition API)
-- **构建工具**: Vite 7
+- **框架**: Vue 3 (Composition API) + Vite 原生 SSR
+- **构建工具**: Vite 7 + Express SSR 服务
 - **UI 组件库**: Vant 4
+- **性能**: 路由懒加载、动态高度虚拟列表、响应式 WebP、可选 CDN
+- **质量**: Playwright E2E、Lighthouse CI、Web Vitals 与异常监控
 - **状态管理**: Pinia
 - **路由**: Vue Router 4
 - **国际化**: Vue I18n 9
@@ -30,42 +32,49 @@
 
 ```
 .
-├── backend/                    # 后端项目
+├── backend/                    # FastAPI 后端
+│   ├── cache/                  # 缓存模块
+│   ├── config/                 # 数据库、Redis 与环境配置
 │   ├── crud/                   # 数据访问层
-│   ├── models/                 # 数据库模型
+│   ├── models/                 # SQLAlchemy 模型
 │   ├── routers/                # API 路由
 │   ├── schemas/                # 数据校验模型
-│   ├── utils/                  # 工具函数
-│   ├── config/                 # 配置文件
-│   ├── cache/                  # 缓存模块
-│   ├── tests/                  # 单元测试
-│   ├── main.py                 # 入口文件
-│   ├── pyproject.toml          # Python 项目配置
-│   └── requirements.txt        # 依赖列表
+│   ├── tests/                  # pytest 测试
+│   ├── utils/                  # 认证、日志、限流等工具
+│   ├── main.py                 # 应用入口
+│   ├── run_sql.py              # 数据库与示例数据初始化工具
+│   ├── pyproject.toml          # Python 项目与依赖配置
+│   ├── requirements.txt        # 由 uv.lock 导出的生产依赖
+│   └── uv.lock                 # Python 依赖锁文件
 │
-├── frontend/                   # 前端项目
+├── frontend/                   # Vue 3 + Vite 前端
+│   ├── e2e/                    # Playwright 测试与确定性 fixture 服务
 │   ├── src/
 │   │   ├── api/                # API 请求封装
+│   │   ├── components/         # 新闻卡片与虚拟列表
 │   │   ├── i18n/               # 国际化配置
-│   │   ├── router/             # 路由配置
+│   │   ├── router/             # 路由、预取与鉴权
 │   │   ├── store/              # Pinia 状态管理
+│   │   ├── utils/              # 图片等工具函数
 │   │   ├── views/              # 页面组件
-│   │   ├── App.vue             # 根组件
-│   │   ├── main.js             # 入口文件
-│   │   └── style.css           # 全局样式
-│   ├── index.html              # HTML 模板
-│   ├── vite.config.js          # Vite 配置
-│   └── package.json            # 前端依赖
+│   │   ├── entry-client.js     # 浏览器水合与 CSR 入口
+│   │   ├── entry-server.js     # SSR 渲染入口
+│   │   ├── monitor.js          # Web Vitals 与异常监控
+│   │   └── seo.js              # SEO 元信息
+│   ├── server.js               # Express SSR 服务
+│   ├── lighthouserc.cjs        # Lighthouse 三次中位数门槛
+│   ├── playwright.config.js    # E2E 配置
+│   └── package.json            # 前端依赖与命令
 │
-├── docs/                       # 项目文档
-│   ├── API接口规范文档.md       # API 接口详细文档
-│   ├── 项目后端设计说明文档.md  # 后端设计说明
-│   ├── database.sql            # 数据库初始化脚本
-│   └── campus_data.sql         # 校园数据脚本
-│
-├── docker-compose.yml          # Docker Compose 配置
+├── docs/
+│   ├── database.sql            # 数据库建表脚本
+│   └── campus_data.sql         # 分类与新闻示例数据
+├── scripts/smoke.mjs           # 部署发布冒烟
+├── .env.example                # Compose 环境变量示例
+├── docker-compose.yml          # 五服务部署配置
+├── LICENSE                     # MIT 许可证
 ├── Makefile                    # 快捷命令
-└── .gitignore                  # Git 忽略配置
+└── README.md                   # 项目说明
 ```
 
 ## 功能特性
@@ -90,8 +99,8 @@
 ## 快速开始
 
 ### 环境要求
-- Python >= 3.14 (项目配置要求，实际可根据依赖版本调整)
-- Node.js >= 18
+- Python 3.14.x（与 `.python-version`、Docker 镜像一致）
+- Node.js >= 20.19（Vite 7 要求，Docker 使用 Node 20）
 - MySQL >= 8.0
 - Redis >= 6.0
 - Docker (可选，用于容器化部署)
@@ -109,7 +118,7 @@ uv sync
 **前端依赖**:
 ```bash
 cd frontend
-npm install --registry=https://registry.npmmirror.com
+npm ci
 ```
 
 #### 2. 配置环境
@@ -124,7 +133,7 @@ cp .env.example .env
 ```env
 DEBUG=True
 
-DATABASE_URL=mysql+aiomysql://root:12345678@localhost:3306/news_app?charset=utf8mb4
+DATABASE_URL=mysql+aiomysql://root:replace-with-your-mysql-password@localhost:3306/news_app?charset=utf8mb4
 DATABASE_POOL_SIZE=10
 DATABASE_MAX_OVERFLOW=20
 
@@ -132,12 +141,12 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_DB=0
 
-JWT_SECRET_KEY=campus-news-jwt-secret-key-change-in-production
+JWT_SECRET_KEY=replace-with-at-least-32-bytes-of-random-data
 JWT_ALGORITHM=HS256
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
 JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
 
-CORS_ORIGINS=http://localhost:5173,http://localhost:5175,http://localhost:8080
+CORS_ORIGINS=["http://localhost:5173","http://localhost:5175","http://localhost:8080"]
 
 DASHSCOPE_API_KEY=
 DASHSCOPE_API_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
@@ -148,27 +157,29 @@ RATE_LIMIT_STORAGE_URL=redis://localhost:6379/1
 
 **前端配置**:
 
-前端使用 Vite 代理，配置在 `vite.config.js` 中：
-```javascript
-server: {
-  host: '0.0.0.0',
-  port: 5175,
-  strictPort: true,
-  proxy: {
-    '/api': {
-      target: 'http://localhost:8888',
-      changeOrigin: true
-    }
-  }
-}
+```bash
+cd frontend
+cp .env.example .env
 ```
+
+可用配置：
+```env
+# 浏览器 API 地址；默认同源，由 SSR 服务代理 /api
+VITE_API_BASE_URL=
+# 可选图片 CDN 前缀；留空表示未启用外部 CDN
+VITE_IMAGE_CDN_BASE_URL=
+# Web Vitals 与异常上报采样率，范围 0~1
+VITE_MONITOR_SAMPLE_RATE=0.1
+```
+
+SSR 服务默认代理到 `http://localhost:8888`。需要修改时，在启动环境中设置 `API_INTERNAL_BASE_URL`；公网站点通过 `APP_ORIGIN` 生成 canonical 和 Open Graph URL。
 
 #### 3. 启动服务
 
 **启动后端**:
 ```bash
 cd backend
-uvicorn main:app --host 0.0.0.0 --port 8888 --reload
+uv run uvicorn main:app --host 0.0.0.0 --port 8888 --reload
 ```
 
 **启动前端**:
@@ -184,24 +195,34 @@ npm run dev
 
 ### Docker 部署
 
-**启动所有服务**:
+部署包含 Nginx 网关、Node SSR、FastAPI、MySQL 和 Redis。首次启动会执行 `docs/database.sql` 建表，再导入 `docs/campus_data.sql` 示例数据。`MYSQL_ROOT_PASSWORD` 与 `JWT_SECRET_KEY` 均为必填项且不能为空；JWT 密钥应使用至少 32 字节的随机数据。MySQL、Redis 和后端端口仅绑定 `127.0.0.1`，公网流量只通过 Nginx 网关进入。
+
 ```bash
-docker-compose up -d
+cp .env.example .env
+# 修改生产密码、JWT 密钥和 APP_ORIGIN 后执行
+docker compose up -d --build
+node scripts/smoke.mjs
 ```
 
-**查看服务状态**:
+也可以使用 `make deploy`。常用命令：
+
 ```bash
-docker-compose ps
+docker compose ps                 # 服务及健康状态
+docker compose logs -f            # JSON 请求与应用日志
+docker compose down               # 停止服务
 ```
 
-**停止服务**:
-```bash
-docker-compose down
-```
+- 站点：`http://localhost:8080`
+- SSR 健康检查：`GET /healthz`
+- 后端就绪检查：`GET /api/health/ready`，实际检查 MySQL 与 Redis
+- 客户端监控：`POST /api/metrics`，按采样率上报 LCP、CLS、INP、FCP、TTFB 和异常
+- 日志由 Docker `json-file` 驱动轮转，单文件 10 MB，保留 3 份
+
+`VITE_IMAGE_CDN_BASE_URL` 仅在配置有效 CDN 域名后生效；默认留空，图片经后端代理实时转为 WebP，不代表已接入第三方 CDN。
 
 ## API 接口
 
-完整的 API 接口文档请参考 [API接口规范文档.md](docs/API接口规范文档.md)。
+主要接口如下，具体请求参数以 `backend/routers/` 和 `backend/schemas/` 中的实际定义为准。
 
 ### 用户管理模块
 | 方法 | 路径 | 描述 |
@@ -241,34 +262,54 @@ docker-compose down
 |------|------|------|
 | GET | `/api/image/proxy?url=xxx` | 图片代理 |
 | POST | `/api/chat/completion` | AI 问答 |
-| GET | `/api/health` | 健康检查 |
+| GET | `/api/health` | 后端存活检查 |
+| GET | `/api/health/ready` | 数据库与 Redis 就绪检查 |
+| POST | `/api/metrics` | 接收 Web Vitals 与异常事件 |
 
 ## 数据库初始化
 
-执行数据库初始化脚本：
+配置后端 `.env` 中的 `DATABASE_URL` 后，可一次执行建表和示例数据导入：
+
 ```bash
 cd backend
-python run_sql.py
+uv run python run_sql.py
 ```
 
-或直接导入 SQL 文件：
+也可以在项目根目录直接导入 SQL 文件：
+
 ```bash
-mysql -u username -p database < docs/database.sql
-mysql -u username -p database < docs/campus_data.sql
+mysql -u username -p < docs/database.sql
+mysql -u username -p news_app < docs/campus_data.sql
 ```
+
+以上方式都会清空并重新导入分类和新闻示例数据，请勿用于包含业务数据的数据库。
 
 ## 测试
 
-运行后端测试：
 ```bash
-cd backend
-uv run pytest
+# 后端单元测试
+cd backend && uv run pytest tests/ -v
+
+# 前端生产构建及 Playwright E2E（SSR、鉴权、水合、虚拟列表）
+cd frontend && npm run test:e2e
+
+# 首页与详情各运行 3 次 Lighthouse，按中位数断言
+cd frontend && npm run test:perf
+
+# 对部署环境执行发布冒烟
+cd .. && node scripts/smoke.mjs
 ```
 
-## 项目文档
+Lighthouse 使用移动模拟，要求 Performance、Best Practices、SEO 中位数均不低于 0.90，LCP 不高于 2.5 秒，CLS 不高于 0.1。报告保存在 `frontend/lighthouse-report/`，Playwright 报告保存在 `frontend/playwright-report/`。
 
-- [API接口规范文档.md](docs/API接口规范文档.md) - API 接口详细说明
-- [项目后端设计说明文档.md](docs/项目后端设计说明文档.md) - 后端架构设计
+2026-11-17 使用生产构建实测，首页和详情各运行 3 次，中位数如下：
+
+| 页面 | Performance | Best Practices | SEO | LCP | CLS |
+| --- | --- | --- | --- | --- | --- |
+| 首页 | 0.98 | 0.96 | 1.00 | 2073 ms | 0 |
+| 新闻详情 | 0.96 | 0.96 | 1.00 | 2355 ms | 0 |
+
+同一轮验收中，Playwright 11 项、后端 pytest 37 项及 Docker 发布冒烟均通过。
 
 ## 项目约定
 
@@ -301,10 +342,12 @@ uv run pytest
 - 请求限流防止 API 滥用
 
 ### 性能优化
-- 新闻列表使用 Redis 缓存机制
-- 图片懒加载
-- API 请求合并和防抖
-- 使用连接池管理数据库连接
+- 首页与详情 SSR 直出，路由级 CSS 随首屏返回，私有与访客页面保持 CSR
+- 公开数据在水合前预取，避免首屏重复请求
+- 首页使用支持动态高度的 window scrolling 虚拟列表
+- 图片实时转 WebP，提供响应式 `srcset`、固定尺寸和可选 CDN
+- 路由懒加载、静态资源长期缓存、SSR 与 Nginx Gzip
+- 新闻列表使用 Redis 缓存机制，数据库使用连接池
 
 ## 许可证
 

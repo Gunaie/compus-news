@@ -1,0 +1,10 @@
+node_modules
+dist
+.lighthouseci
+lighthouse-report
+playwright-report
+test-results
+.env
+.env.*
+!.env.production
+npm-debug.log*

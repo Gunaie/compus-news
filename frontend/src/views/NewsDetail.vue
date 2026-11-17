@@ -13,7 +13,20 @@
         <span class="news-time">{{ news.publishTime }}</span>
         <span class="news-views">{{ news.views }}阅读</span>
       </div>
-      <van-image v-if="news.image" v-lazy="news.image" class="news-image" fit="cover" @error="handleImageError" />
+      <img
+        v-if="news.image"
+        :src="detailImage"
+        :srcset="detailSrcSet"
+        sizes="(max-width: 750px) calc(100vw - 32px), 718px"
+        class="news-image"
+        :alt="news.title"
+        width="800"
+        height="450"
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
+        @error="handleImageError"
+      />
       <div class="news-content" v-html="news.content"></div>
       
       <div class="news-actions">
@@ -40,6 +53,7 @@
       </div>
     </div>
 
+    <van-empty v-else-if="newsStore.detailStatus === 404" description="新闻不存在" />
     <div v-else class="loading">
       <div class="loading-spinner"></div>
       <span>加载中...</span>
@@ -48,57 +62,49 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { newsApi, favoriteApi, historyApi } from '../api'
+import { favoriteApi, historyApi } from '../api'
+import { useNewsStore } from '../store/news'
 import { useUserStore } from '../store/user'
+import { getImageUrl } from '../utils/image'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
-
-const news = ref(null)
-const relatedNews = ref([])
+const newsStore = useNewsStore()
+const news = computed(() => newsStore.detail)
+const relatedNews = computed(() => news.value?.relatedNews || [])
+const newsId = computed(() => Number(route.params.id))
+const detailImage = computed(() => getImageUrl(news.value?.image, { width: 800, height: 450 }))
+const detailSrcSet = computed(() => [
+  { width: 480, height: 270 },
+  { width: 800, height: 450 },
+  { width: 1200, height: 675 }
+].map((size) => `${getImageUrl(news.value?.image, size)} ${size.width}w`).join(', '))
 const isFavorite = ref(false)
-const newsId = ref(0)
 
-onMounted(() => {
-  newsId.value = parseInt(route.params.id)
-  loadNewsDetail()
-})
+onMounted(runClientTasks)
 
-watch(() => route.params.id, (newId) => {
-  if (newId) {
-    newsId.value = parseInt(newId)
-    loadNewsDetail()
+watch(() => route.params.id, (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    isFavorite.value = false
+    runClientTasks()
   }
 })
 
-async function loadNewsDetail() {
+function runClientTasks() {
   window.scrollTo(0, 0)
-  news.value = null
-  try {
-    const res = await newsApi.getDetail({ id: newsId.value })
-    if (res.code === 200) {
-      news.value = res.data
-      relatedNews.value = res.data.relatedNews || []
-      checkFavorite()
-      addHistory()
-    }
-  } catch (error) {
-    console.error('加载新闻详情失败:', error)
-  }
+  checkFavorite()
+  addHistory()
 }
 
 async function addHistory() {
   if (!userStore.token) return
   try {
-    console.log('添加历史记录:', { newsId: newsId.value, token: userStore.token })
-    const res = await historyApi.add({ newsId: newsId.value })
-    console.log('添加历史记录成功:', res)
+    await historyApi.add({ newsId: newsId.value })
   } catch (error) {
     console.error('添加历史记录失败:', error)
-    console.error('错误详情:', error.response?.data || error.message || error)
   }
 }
 
@@ -184,8 +190,11 @@ function handleImageError(event) {
 .news-image {
   width: 100%;
   height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
   border-radius: 8px;
   margin-bottom: 16px;
+  background: #f5f5f5;
 }
 
 .news-content {

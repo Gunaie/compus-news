@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from routers import news, users, favorite, history, image, chat, health
+from routers import news, users, favorite, history, image, chat, health, monitoring
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -49,3 +49,4 @@ app.include_router(history.router)
 app.include_router(image.router)
 app.include_router(chat.router)
 app.include_router(health.router)
+app.include_router(monitoring.router)

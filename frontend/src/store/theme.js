@@ -5,7 +5,8 @@ export const useThemeStore = defineStore('theme', () => {
   const theme = ref('light')
 
   function initTheme() {
-    const savedTheme = localStorage.getItem('theme')
+    if (typeof window === 'undefined') return
+    const savedTheme = window.localStorage.getItem('theme')
     if (savedTheme) {
       theme.value = savedTheme
     }
@@ -14,12 +15,16 @@ export const useThemeStore = defineStore('theme', () => {
 
   function toggleTheme() {
     theme.value = theme.value === 'light' ? 'dark' : 'light'
-    localStorage.setItem('theme', theme.value)
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('theme', theme.value)
+    }
     applyTheme()
   }
 
   function applyTheme() {
-    document.documentElement.classList.toggle('dark', theme.value === 'dark')
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('dark', theme.value === 'dark')
+    }
   }
 
   return {

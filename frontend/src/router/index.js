@@ -1,6 +1,7 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import { userApi } from '../api'
+import { createMemoryHistory, createRouter, createWebHistory } from 'vue-router'
 import { showToast } from 'vant'
+import { userApi } from '../api'
+import { useNewsStore } from '../store/news'
 
 const routes = [
   {
@@ -9,7 +10,7 @@ const routes = [
     component: () => import('../views/Home.vue')
   },
   {
-    path: '/news/:id',
+    path: '/news/:id(\\d+)',
     name: 'NewsDetail',
     component: () => import('../views/NewsDetail.vue')
   },
@@ -48,58 +49,84 @@ const routes = [
     name: 'Register',
     component: () => import('../views/Register.vue'),
     meta: { guestOnly: true }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('../views/NotFound.vue')
   }
 ]
 
-const router = createRouter({
-  history: createWebHistory(),
-  routes
-})
-
 function getToken() {
+  if (typeof window === 'undefined') return ''
   try {
-    return sessionStorage.getItem('campus_news_token') || localStorage.getItem('token')
+    return window.sessionStorage.getItem('campus_news_token') || window.localStorage.getItem('token')
   } catch {
-    return localStorage.getItem('token')
+    return window.localStorage.getItem('token')
   }
 }
 
 function clearAuthData() {
+  if (typeof window === 'undefined') return
   try {
-    sessionStorage.removeItem('campus_news_token')
-    sessionStorage.removeItem('campus_news_userinfo')
+    window.sessionStorage.removeItem('campus_news_token')
+    window.sessionStorage.removeItem('campus_news_userinfo')
   } catch {}
-  localStorage.removeItem('token')
-  localStorage.removeItem('userInfo')
+  window.localStorage.removeItem('token')
+  window.localStorage.removeItem('userInfo')
 }
 
-router.beforeEach(async (to, from, next) => {
-  const token = getToken()
-  const isAuthenticated = !!token
+export function createAppRouter(pinia) {
+  const router = createRouter({
+    history: typeof window === 'undefined' ? createMemoryHistory() : createWebHistory(),
+    routes,
+    scrollBehavior(to, from, savedPosition) {
+      return savedPosition || { top: 0 }
+    }
+  })
 
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next({ name: 'Login', query: { redirect: to.fullPath } })
-    return
-  }
-
-  if (to.meta.guestOnly && isAuthenticated) {
-    next({ name: 'Home' })
-    return
-  }
-
-  if (to.meta.requiresAuth && isAuthenticated) {
-    try {
-      await userApi.getInfo()
+  router.beforeEach(async (to, from, next) => {
+    if (typeof window === 'undefined') {
       next()
-    } catch (error) {
-      clearAuthData()
-      showToast({ message: '登录已过期，请重新登录', icon: 'error' })
+      return
+    }
+
+    const token = getToken()
+    const isAuthenticated = !!token
+
+    if (to.meta.requiresAuth && !isAuthenticated) {
       next({ name: 'Login', query: { redirect: to.fullPath } })
       return
     }
-  }
 
-  next()
-})
+    if (to.meta.guestOnly && isAuthenticated) {
+      next({ name: 'Home' })
+      return
+    }
 
-export default router
+    if (to.meta.requiresAuth && isAuthenticated) {
+      try {
+        await userApi.getInfo()
+        next()
+      } catch (error) {
+        clearAuthData()
+        showToast({ message: '登录已过期，请重新登录', icon: 'error' })
+        next({ name: 'Login', query: { redirect: to.fullPath } })
+        return
+      }
+    }
+
+    next()
+  })
+
+  router.beforeResolve(async (to) => {
+    const newsStore = useNewsStore(pinia)
+    if (to.name === 'Home') {
+      await newsStore.loadHome()
+    } else if (to.name === 'NewsDetail') {
+      await newsStore.loadDetail(Number(to.params.id))
+    }
+  })
+
+  return router
+}

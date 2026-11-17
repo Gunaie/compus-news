@@ -1,33 +1,21 @@
 import axios from 'axios'
 import { showToast } from 'vant'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+const BASE_URL = import.meta.env.SSR
+  ? (process.env.API_INTERNAL_BASE_URL || 'http://localhost:8888')
+  : (import.meta.env.VITE_API_BASE_URL || '')
 
 const api = axios.create({
   baseURL: BASE_URL,
   timeout: 30000
 })
 
-function replacePicsumUrl(value) {
-  if (typeof value === 'string' && value.startsWith('https://picsum.photos/')) {
-    return `/api/image/proxy?url=${encodeURIComponent(value)}`
-  }
-  if (typeof value === 'object' && value !== null) {
-    if (Array.isArray(value)) {
-      return value.map(replacePicsumUrl)
-    }
-    for (const key in value) {
-      value[key] = replacePicsumUrl(value[key])
-    }
-  }
-  return value
-}
-
 function getToken() {
+  if (typeof window === 'undefined') return ''
   try {
-    return sessionStorage.getItem('campus_news_token') || localStorage.getItem('token')
+    return window.sessionStorage.getItem('campus_news_token') || window.localStorage.getItem('token')
   } catch {
-    return localStorage.getItem('token')
+    return window.localStorage.getItem('token')
   }
 }
 
@@ -45,11 +33,12 @@ api.interceptors.request.use(
 )
 
 api.interceptors.response.use(
-  (response) => {
-    replacePicsumUrl(response.data)
-    return response.data
-  },
+  (response) => response.data,
   (error) => {
+    if (import.meta.env.SSR) {
+      return Promise.reject(error)
+    }
+
     const { response, message } = error
     
     if (response) {

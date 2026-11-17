@@ -10,6 +10,7 @@ dependencies = [
     "httpx>=0.28.1",
     "limits[redis]>=1.6",
     "pydantic-settings>=2.14.2",
+    "Pillow>=11.3.0",
     "python-dotenv>=1.2.2",
     "python-jose>=3.5.0",
     "redis>=8.0.1",
